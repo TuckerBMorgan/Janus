@@ -13,6 +13,7 @@ using namespace cv;
 std::mutex queue_mutex;
 int number_of_frames = 0;
 
+Mat K;
   
 class Frame {
     public:
@@ -99,6 +100,7 @@ void* featureDetection(void* arguments) {
     return 0;
 }
 
+
 void* featureMatching(void* arguments) {
     int currentPlace = 1;
     std::vector<Frame> myFrames;
@@ -148,14 +150,48 @@ void* featureMatching(void* arguments) {
                 }
             }
 
+            /*
+def fundamentalToRt(F):
+  W = np.mat([[0,-1,0],[1,0,0],[0,0,1]],dtype=float)
+  U,d,Vt = np.linalg.svd(F)
+  if np.linalg.det(U) < 0:
+    U *= -1.0
+  if np.linalg.det(Vt) < 0:
+    Vt *= -1.0
+  R = np.dot(np.dot(U, W), Vt)
+  if np.sum(R.diagonal()) < 0:
+    R = np.dot(np.dot(U, W.T), Vt)
+  t = U[:, 2]
+ */
+
+
             Mat outputArray;
             Mat cameraMatrix;
             Mat fund = findFundamentalMat(obj, scene, FM_RANSAC, 1.3, .99, outputArray);
-            Mat S;
+            Mat kTranspose;
+            transpose(K, kTranspose);
+            Mat est = K * fund * kTranspose;
+            
+            Mat W;
             Mat U;
             Mat Vt;
-            SVDecomp();
-            Mat result = cameraMatrix * fund;
+            SVDecomp(fund, W, U, Vt);
+
+            double detOfU = determinant(U);
+            if (detOfU < 0) {
+                U *= -1;
+            }
+            double detOFVT = determinant(Vt);
+            if (detOFVT < 0) {
+                Vt *= -1;
+            }
+
+            Mat R = (U * W) * Vt;
+            Mat diag = R.diag();
+        
+            //TODO: Resolve amb better
+            double s = sum(diag);
+
         }
     }
 
